@@ -1,0 +1,25 @@
+<idea-plugin>
+    <id>io.github.renaudcerrato.inlinenotes</id>
+    <name>Inline Notes</name>
+    <version>0.1.5</version>
+    <vendor>Inline Notes</vendor>
+    <description>Offline plain-text comments below editor lines, stored in the project without changing source files.</description>
+    <idea-version since-build="262"/>
+    <depends>com.intellij.modules.platform</depends>
+    <extensions defaultExtensionNs="com.intellij">
+        <postStartupActivity implementation="inlinenotes.InlineNotesStartupActivity"/>
+        <toolWindow id="Inline Notes" anchor="right"
+                    factoryClass="inlinenotes.InlineNotesToolWindowFactory"/>
+    </extensions>
+    <projectListeners>
+        <listener class="inlinenotes.NoteEditorListener"
+                  topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
+    </projectListeners>
+    <actions>
+        <action id="io.github.renaudcerrato.inlinenotes.AddInlineNote"
+                class="inlinenotes.AddInlineNoteAction" text="Add Inline Note"
+                description="Add a local plain-text comment below the caret line">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
+    </actions>
+</idea-plugin>

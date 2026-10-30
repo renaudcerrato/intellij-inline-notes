@@ -1,0 +1,10 @@
+/build/
+/dist/
+/.gradle/
+/.intellijPlatform/
+.idea/
+.opencode/
+*.log
+local-comments.xml
+inline-notes.xml
+.DS_Store

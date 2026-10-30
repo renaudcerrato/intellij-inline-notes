@@ -1,0 +1,88 @@
+import org.gradle.process.CommandLineArgumentProvider
+
+plugins {
+    id 'java'
+    id 'org.jetbrains.intellij.platform' version '2.19.0'
+}
+
+version = '0.1.5'
+
+def devProject = layout.buildDirectory.dir('dev-project')
+
+repositories {
+    mavenCentral()
+    intellijPlatform {
+        defaultRepositories()
+    }
+}
+
+dependencies {
+    intellijPlatform {
+        intellijIdea '2026.2.1'
+        // 2.19.0 supplies javaCompiler() automatically for instrumentation.
+    }
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 25
+}
+
+intellijPlatform {
+    projectName = 'inline-notes'
+    sandboxContainer = layout.buildDirectory.dir('dev-sandbox')
+    autoReload = true
+    buildSearchableOptions = false
+    instrumentCode = true
+    pluginConfiguration {
+        version = providers.gradleProperty('devReloadVersion').orElse('0.1.5')
+        ideaVersion {
+            sinceBuild = '262'
+            untilBuild = provider { null }
+        }
+    }
+}
+
+tasks.named('jar') {
+    archiveFileName = 'inline-notes-base.jar'
+}
+
+tasks.named('instrumentedJar') {
+    archiveFileName = 'inline-notes-instrumented.jar'
+}
+
+tasks.named('composedJar') {
+    archiveFileName = 'inline-notes.jar'
+}
+
+tasks.named('buildPlugin') {
+    archiveFileName = 'inline-notes.zip'
+    // 2.19.0 gives runIde its own sandbox producer; refresh that live copy too.
+    dependsOn('prepareSandbox_runIde')
+}
+
+tasks.named('runIde') {
+    args = [devProject.get().asFile.absolutePath]
+    systemProperty('idea.initially.ask.config', 'false')
+    doFirst {
+        // Android Studio 262 / plugin 2.19.0: avoid discovering the same plugin through two path routes.
+        def originalProviders = new ArrayList(jvmArgumentProviders)
+        jvmArgumentProviders.clear()
+        originalProviders.each { originalProvider ->
+            jvmArgumentProviders.add({ ->
+                originalProvider.asArguments().findAll { argument -> !argument.startsWith('-Dplugin.path=') }
+            } as CommandLineArgumentProvider)
+        }
+        def sample = devProject.get().file('sample.txt').asFile
+        if (!sample.exists()) {
+            sample.parentFile.mkdirs()
+            sample.setText('Inline Notes development sandbox\n\nAdd a comment below this line.\nKeep this project disposable.\n', 'UTF-8')
+        }
+    }
+}
